@@ -89,10 +89,6 @@
 [submodule "src/github.com/kr/pty"]
 	path = src/github.com/kr/pty
 	url = https://github.com/kr/pty
-[submodule "src/github.com/concourse/fly"]
-	path = src/github.com/concourse/fly
-	url = https://github.com/concourse/fly
-	branch = master
 [submodule "src/github.com/tedsuo/rata"]
 	path = src/github.com/tedsuo/rata
 	url = https://github.com/tedsuo/rata
@@ -236,10 +232,6 @@
 	path = src/github.com/vito/twentythousandtonnesofcrudeoil
 	url = https://github.com/vito/twentythousandtonnesofcrudeoil
 	branch = master
-[submodule "src/github.com/concourse/bin"]
-	path = src/github.com/concourse/bin
-	url = https://github.com/concourse/bin
-	branch = master
 [submodule "src/github.com/cenkalti/backoff"]
 	path = src/github.com/cenkalti/backoff
 	url = https://github.com/cenkalti/backoff
@@ -377,10 +369,6 @@
 [submodule "src/github.com/concourse/web"]
 	path = src/github.com/concourse/web
 	url = https://github.com/concourse/web
-	branch = master
-[submodule "src/github.com/concourse/worker"]
-	path = src/github.com/concourse/worker
-	url = https://github.com/concourse/worker
 	branch = master
 [submodule "src/github.com/concourse/flag"]
 	path = src/github.com/concourse/flag
