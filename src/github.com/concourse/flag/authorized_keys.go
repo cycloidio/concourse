@@ -9,6 +9,7 @@ import (
 
 type AuthorizedKeys struct {
 	Keys []ssh.PublicKey
+	File string
 }
 
 func (f *AuthorizedKeys) UnmarshalFlag(value string) error {
@@ -32,6 +33,12 @@ func (f *AuthorizedKeys) UnmarshalFlag(value string) error {
 	}
 
 	f.Keys = authorizedKeys
+	f.File = value
 
 	return nil
+}
+
+// Reload reloads the value of the Keys
+func (f *AuthorizedKeys) Reload() error {
+	return f.UnmarshalFlag(f.File)
 }

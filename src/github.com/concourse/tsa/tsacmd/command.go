@@ -13,6 +13,9 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+    "os/signal"
+    "syscall"
+
 	"github.com/concourse/flag"
 	"github.com/concourse/tsa"
 	"github.com/concourse/tsa/tsaflags"
@@ -33,6 +36,7 @@ type TSACommand struct {
 	HostKey            *flag.PrivateKey         `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
 	AuthorizedKeys     flag.AuthorizedKeys      `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
 	TeamAuthorizedKeys []tsaflags.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	YamlTeamAuthorizedKeys flag.YamlTeamAuthorizedKeys `long:"yaml-team-authorized-keys" description:"Path to file containing keys to authorize, in SSH authorized_keys yaml format."`
 
 	ATCURLs []flag.URL `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
 
@@ -93,7 +97,6 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	config, err := cmd.configureSSHServer(sessionAuthTeam, cmd.AuthorizedKeys.Keys, teamAuthorizedKeys)
-	return nil, fmt.Errorf("FUCKING DEBUG 2 %s", cmd.AuthorizedKeys.Keys)
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure SSH server: %s", err)
 	}
@@ -119,6 +122,52 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 			httpClient:        http.DefaultClient,
 			sessionTeam:       sessionAuthTeam,
 		}
+        // Starts a goroutine that his purpose is to basically listen to the
+        // SIGUSR1 syscall to then reload the config.
+        // For now it only reload the TSACommand.AuthorizedKeys but any
+        // other configuration could be added
+        go func() {
+         for {
+          // Set up channel on which to send signal notifications.
+          // We must use a buffered channel or risk missing the signal
+          // if we're not ready to receive when the signal is sent.
+          c := make(chan os.Signal, 1)
+          signal.Notify(c, syscall.SIGUSR1)
+
+          // Block until a signal is received.
+          _ = <-c
+
+          logger.Info("reloading-config")
+
+          err := cmd.AuthorizedKeys.Reload()
+          if err != nil {
+           logger.Error("failed to reload the config: %s", err)
+           continue
+          }
+
+
+          err = cmd.YamlTeamAuthorizedKeys.Reload()
+          if err != nil {
+           logger.Error("failed to reload the team authorized keys : %s", err)
+           continue
+          }
+
+	      teamAuthorizedKeys, err = cmd.loadTeamAuthorizedKeys()
+          if err != nil {
+           logger.Error("failed to reload the team authorized keys : %s", err)
+           continue
+          }
+
+          // compute again the config so it's updated
+          config, err := cmd.configureSSHServer(sessionAuthTeam, cmd.AuthorizedKeys.Keys, teamAuthorizedKeys)
+          if err != nil {
+           logger.Error("failed to configure SSH server: %s", err)
+           continue
+          }
+
+          server.config = config
+         }
+        }()
 		return serverRunner{logger, server, listenAddr}, nil
 	}
 	return nil, fmt.Errorf("missing session signing key")
@@ -155,6 +204,24 @@ func (cmd *TSACommand) loadTeamAuthorizedKeys() ([]TeamAuthKeys, error) {
 
 		teamKeys = append(teamKeys, TeamAuthKeys{Team: cmd.TeamAuthorizedKeys[i].Name, AuthKeys: teamAuthorizedKeys})
 	}
+
+	logger, _ := cmd.constructLogger()
+    for _, t := range cmd.YamlTeamAuthorizedKeys.TeamAuthorizedKeys {
+        logger.Info(fmt.Sprintf("Load keys for team : %s", t.Team))
+		var teamAuthorizedKeys []ssh.PublicKey
+		for _, k := range t.Keys {
+            logger.Info(fmt.Sprintf("  - %s", k))
+			key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(k))
+			if err != nil {
+                logger.Error(fmt.Sprintf("  - Invalid format, ignoring %s", k), err)
+				continue
+			}
+
+			teamAuthorizedKeys = append(teamAuthorizedKeys, key)
+		}
+	    teamKeys = append(teamKeys, TeamAuthKeys{Team: t.Team, AuthKeys: teamAuthorizedKeys})
+
+    }
 
 	return teamKeys, nil
 }

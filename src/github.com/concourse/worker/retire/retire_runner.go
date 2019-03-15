@@ -15,6 +15,7 @@ type RetireWorkerCommand struct {
 	TSA tsa.Config `group:"TSA Configuration" namespace:"tsa" required:"true"`
 
 	WorkerName string `long:"name" required:"true" description:"The name of the worker you wish to retire."`
+	WorkerTeam string `long:"team" description:"The team name of the worker you wish to retire."`
 }
 
 func (cmd *RetireWorkerCommand) Execute(args []string) error {
@@ -31,6 +32,7 @@ func (cmd *RetireWorkerCommand) retireWorkerRunner(logger lager.Logger) ifrit.Ru
 		logger,
 		atc.Worker{
 			Name: cmd.WorkerName,
+			Team: cmd.WorkerTeam,
 		},
 		beacon.Config{
 			TSAConfig: cmd.TSA,
