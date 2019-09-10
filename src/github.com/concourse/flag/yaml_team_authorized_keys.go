@@ -25,12 +25,12 @@ type YamlTeamAuthorizedKeys struct {
 
 func (f *YamlTeamAuthorizedKeys) UnmarshalFlag(value string) error {
 //func (f *YamlTeamAuthorizedKeys) UnmarshalFlag(value string) error {
+	f.File = value
 	authorizedKeysBytes, err := ioutil.ReadFile(value)
 	if err != nil {
 		return fmt.Errorf("failed to read yaml authorized keys: %s", err)
 	}
 
-    f.File = value
 
     err = yaml.Unmarshal([]byte(authorizedKeysBytes), &f.TeamAuthorizedKeys)
     if err != nil {
