@@ -15,11 +15,14 @@ services:
     image: concourse/concourse:local
     volumes:
     - .:/src
+    - ./concourse-keys/:/concourse-keys/
     command: web
     depends_on: [db]
     ports:
     - 8080:8080
+    - 2222:2222
     environment:
+      LOG_LEVEL: debug
       CONCOURSE_LOG_LEVEL: debug
       CONCOURSE_POSTGRES_HOST: db
       CONCOURSE_POSTGRES_USER: dev
@@ -30,12 +33,25 @@ services:
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
 
+      CONCOURSE_WORK_DIR: /worker-state
+      CONCOURSE_GARDEN_DNS_PROXY_ENABLE: "true"
+      CONCOURSE_TSA_HOST_KEY: /concourse-keys/tsa_host_key
+      #CONCOURSE_TSA_AUTHORIZED_KEYS: /concourse-keys/authorized_worker_keys
+      #CONCOURSE_TSA_TEAM_AUTHORIZED_KEYS: foo:/concourse-keys/worker_key.pub
+      CONCOURSE_SESSION_SIGNING_KEY: /concourse-keys/session_signing_key
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+      #CONCOURSE_TSA_TEAM_AUTHORIZED_KEYS: foo:/concourse-keys/worker_key.pub
+      CONCOURSE_TSA_TEAM_AUTHORIZED_KEYS_FILE: /concourse-keys/authorized_worker_keys.yml
+
   worker:
     build: .
     image: concourse/concourse:local
     command: worker
     privileged: true
     depends_on: [web]
+    volumes:
+    - ./concourse-keys/:/concourse-keys/
     ports:
     - 7777:7777
     - 7788:7788
@@ -50,3 +66,10 @@ services:
       # so we can reach Garden/Baggageclaim for debugging
       CONCOURSE_BIND_IP: 0.0.0.0
       CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
+
+      CONCOURSE_TEAM: foo
+      CONCOURSE_TSA_HOST_KEY: /concourse-keys/tsa_host_key
+      CONCOURSE_TSA_AUTHORIZED_KEYS: /concourse-keys/authorized_worker_keys
+      CONCOURSE_SESSION_SIGNING_KEY: /concourse-keys/session_signing_key
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
