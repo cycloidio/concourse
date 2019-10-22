@@ -1,6 +1,6 @@
 module github.com/concourse/concourse
 
-replace github.com/concourse/flag => github.com/cycloidio/flag
+replace github.com/concourse/flag => github.com/cycloidio/flag v1.4.0
 
 
 require (
