@@ -1,5 +1,8 @@
 module github.com/concourse/concourse
 
+replace github.com/concourse/flag => github.com/cycloidio/flag
+
+
 require (
 	cloud.google.com/go v0.43.0 // indirect
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c
